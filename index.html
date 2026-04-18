@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Lyric Flow</title>
+        <style>
+            :root {
+                --bg-gradient: linear-gradient(
+                    135deg,
+                    #1a1c2c 0%,
+                    #4a192c 100%
+                );
+                --glass: rgba(255, 255, 255, 0.05);
+                --text: #e0e0e0;
+                --accent: #ff79c6;
+                --draft-text: #9ca3af;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                background: var(--bg-gradient);
+                background-attachment: fixed;
+                color: var(--text);
+                font-family:
+                    "Inter",
+                    -apple-system,
+                    sans-serif;
+                height: 100vh;
+                display: flex;
+                justify-content: center;
+                overflow: hidden;
+            }
+
+            .workspace {
+                display: grid;
+                grid-template-columns: 1fr 300px;
+                gap: 2rem;
+                width: 95%;
+                max-width: 1200px;
+                padding: 3rem 0;
+            }
+
+            /* Main Lyric Zone */
+            .main-zone {
+                display: flex;
+                flex-direction: column;
+                background: var(--glass);
+                backdrop-filter: blur(10px);
+                border-radius: 12px;
+                padding: 2rem;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            #title {
+                background: transparent;
+                border: none;
+                outline: none;
+                color: var(--accent);
+                font-size: 2rem;
+                font-weight: 700;
+                margin-bottom: 1.5rem;
+                letter-spacing: -1px;
+            }
+
+            #editor {
+                flex-grow: 1;
+                background: transparent;
+                border: none;
+                outline: none;
+                color: var(--text);
+                font-size: 1.2rem;
+                line-height: 1.8;
+                resize: none;
+                font-family: inherit;
+            }
+
+            /* Side Scrap/Drafting Zone */
+            .draft-zone {
+                display: flex;
+                flex-direction: column;
+                background: rgba(0, 0, 0, 0.2);
+                border-radius: 12px;
+                padding: 1.5rem;
+                border: 1px dashed rgba(255, 255, 255, 0.1);
+            }
+
+            .draft-zone h3 {
+                font-size: 0.8rem;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                color: var(--draft-text);
+                margin-bottom: 1rem;
+            }
+
+            #scrap-pad {
+                flex-grow: 1;
+                background: transparent;
+                border: none;
+                outline: none;
+                color: var(--draft-text);
+                font-size: 0.95rem;
+                line-height: 1.5;
+                resize: none;
+                font-family: "Georgia", serif;
+                font-style: italic;
+            }
+
+            /* Subtle Export Trigger */
+            .footer {
+                position: fixed;
+                bottom: 1.5rem;
+                left: 50%;
+                transform: translateX(-50%);
+                opacity: 0;
+                transition: opacity 0.3s;
+            }
+
+            body:hover .footer {
+                opacity: 1;
+            }
+
+            button {
+                background: var(--accent);
+                color: #fff;
+                border: none;
+                padding: 0.7rem 1.5rem;
+                border-radius: 30px;
+                cursor: pointer;
+                font-weight: 600;
+                box-shadow: 0 4px 15px rgba(255, 121, 198, 0.3);
+            }
+
+            ::placeholder {
+                color: rgba(255, 255, 255, 0.2);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="workspace">
+            <section class="main-zone">
+                <input
+                    type="text"
+                    id="title"
+                    placeholder="Untitled Song"
+                    spellcheck="false"
+                />
+                <textarea
+                    id="editor"
+                    placeholder="Write the lyrics here..."
+                ></textarea>
+            </section>
+
+            <section class="draft-zone">
+                <h3>Scrap Board</h3>
+                <textarea
+                    id="scrap-pad"
+                    placeholder="Put the 'stupid' ideas here. Rhymes, vibes, fragments..."
+                ></textarea>
+            </section>
+        </div>
+
+        <div class="footer">
+            <button onclick="exportTxt()">Export Final Lyrics</button>
+        </div>
+
+        <script>
+            const fields = ["title", "editor", "scrap-pad"];
+
+            // Auto-load and Save
+            window.onload = () => {
+                fields.forEach((id) => {
+                    const saved = localStorage.getItem(`lyric_app_${id}`);
+                    if (saved) document.getElementById(id).value = saved;
+
+                    document
+                        .getElementById(id)
+                        .addEventListener("input", (e) => {
+                            localStorage.setItem(
+                                `lyric_app_${id}`,
+                                e.target.value,
+                            );
+                        });
+                });
+            };
+
+            function exportTxt() {
+                const title =
+                    document.getElementById("title").value || "Untitled";
+                const body = document.getElementById("editor").value;
+                const scrap = document.getElementById("scrap-pad").value;
+
+                const fileContent = `SONG: ${title}\n\nLYRICS:\n${body}\n\n---\nSCRAP NOTES:\n${scrap}`;
+
+                const blob = new Blob([fileContent], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${title.toLowerCase().replace(/\s+/g, "_")}_draft.txt`;
+                a.click();
+            }
+        </script>
+    </body>
+</html>
