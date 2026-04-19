@@ -6,6 +6,7 @@
         <title>Lyric Flow</title>
         <style>
             :root {
+                /* Default: Midnight Flow (Dark) */
                 --bg-gradient: linear-gradient(
                     135deg,
                     #1a1c2c 0%,
@@ -15,12 +16,55 @@
                 --text: #e0e0e0;
                 --accent: #ff79c6;
                 --draft-text: #9ca3af;
+                --border: rgba(255, 255, 255, 0.1);
+            }
+
+            [data-theme="light"] {
+                --bg-gradient: linear-gradient(
+                    135deg,
+                    #f5f7fa 0%,
+                    #c3cfe2 100%
+                );
+                --glass: rgba(255, 255, 255, 0.7);
+                --text: #2d3436;
+                --accent: #6c5ce7;
+                --draft-text: #636e72;
+                --border: rgba(0, 0, 0, 0.1);
+            }
+
+            [data-theme="zen"] {
+                --bg-gradient: linear-gradient(
+                    135deg,
+                    #132620 0%,
+                    #0a0f0d 100%
+                );
+                --glass: rgba(255, 255, 255, 0.03);
+                --text: #d4d7c5;
+                --accent: #a3b18a;
+                --draft-text: #588157;
+                --border: rgba(163, 177, 138, 0.2);
+            }
+
+            [data-theme="nordic"] {
+                --bg-gradient: linear-gradient(
+                    135deg,
+                    #2e3440 0%,
+                    #4c566a 100%
+                );
+                --glass: rgba(255, 255, 255, 0.05);
+                --text: #eceff4;
+                --accent: #88c0d0;
+                --draft-text: #a3be8c;
+                --border: rgba(255, 255, 255, 0.1);
             }
 
             * {
                 box-sizing: border-box;
                 margin: 0;
                 padding: 0;
+                transition:
+                    background 0.3s ease,
+                    color 0.3s ease;
             }
 
             body {
@@ -34,33 +78,60 @@
                 min-height: 100vh;
                 display: flex;
                 justify-content: center;
-                /* Allow scrolling on mobile if content overflows */
                 overflow-y: auto;
+            }
+
+            /* Theme Controls */
+            .theme-switcher {
+                position: fixed;
+                top: 1rem;
+                right: 1rem;
+                display: flex;
+                gap: 0.5rem;
+                z-index: 100;
+                background: var(--glass);
+                padding: 0.5rem;
+                border-radius: 20px;
+                backdrop-filter: blur(5px);
+                border: 1px solid var(--border);
+            }
+
+            .theme-dot {
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                cursor: pointer;
+                border: 2px solid transparent;
+            }
+
+            .theme-dot:hover {
+                transform: scale(1.2);
+            }
+            .theme-dot.active {
+                border-color: var(--text);
             }
 
             .workspace {
                 display: grid;
-                /* Stack columns on mobile, side-by-side on desktop */
                 grid-template-columns: 1fr;
                 gap: 1.5rem;
                 width: 95%;
                 max-width: 1200px;
-                padding: 1.5rem 0 5rem 0; /* Extra bottom padding for footer */
+                padding: 4rem 0 5rem 0; /* Adjusted top padding for switcher */
             }
 
             @media (min-width: 850px) {
                 body {
                     overflow: hidden;
-                } /* Lock scroll on desktop */
+                }
                 .workspace {
                     grid-template-columns: 1fr 300px;
-                    height: 90vh;
+                    height: 85vh;
                     align-self: center;
                     padding: 0;
                 }
             }
 
-            /* Main Lyric Zone */
             .main-zone {
                 display: flex;
                 flex-direction: column;
@@ -69,7 +140,7 @@
                 -webkit-backdrop-filter: blur(10px);
                 border-radius: 12px;
                 padding: 1.5rem;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                border: 1px solid var(--border);
             }
 
             #title {
@@ -94,17 +165,16 @@
                 line-height: 1.6;
                 resize: none;
                 font-family: inherit;
-                min-height: 300px; /* Ensure space on mobile */
+                min-height: 300px;
             }
 
-            /* Side Scrap/Drafting Zone */
             .draft-zone {
                 display: flex;
                 flex-direction: column;
-                background: rgba(0, 0, 0, 0.2);
+                background: rgba(0, 0, 0, 0.1);
                 border-radius: 12px;
                 padding: 1.2rem;
-                border: 1px dashed rgba(255, 255, 255, 0.1);
+                border: 1px dashed var(--border);
             }
 
             .draft-zone h3 {
@@ -129,24 +199,12 @@
                 min-height: 150px;
             }
 
-            /* Footer/Export Area */
             .footer {
                 position: fixed;
                 bottom: 1.5rem;
                 left: 50%;
                 transform: translateX(-50%);
                 z-index: 10;
-            }
-
-            /* Always show button on mobile, fade in on hover for desktop */
-            @media (min-width: 850px) {
-                .footer {
-                    opacity: 0;
-                    transition: opacity 0.3s;
-                }
-                body:hover .footer {
-                    opacity: 1;
-                }
             }
 
             button {
@@ -157,16 +215,44 @@
                 border-radius: 30px;
                 cursor: pointer;
                 font-weight: 600;
-                box-shadow: 0 4px 15px rgba(255, 121, 198, 0.3);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
                 white-space: nowrap;
             }
 
             ::placeholder {
-                color: rgba(255, 255, 255, 0.2);
+                color: var(--draft-text);
+                opacity: 0.5;
             }
         </style>
     </head>
     <body>
+        <div class="theme-switcher">
+            <div
+                class="theme-dot active"
+                style="background: #1a1c2c"
+                onclick="setTheme('dark')"
+                title="Midnight Flow"
+            ></div>
+            <div
+                class="theme-dot"
+                style="background: #f5f7fa"
+                onclick="setTheme('light')"
+                title="Paper Light"
+            ></div>
+            <div
+                class="theme-dot"
+                style="background: #132620"
+                onclick="setTheme('zen')"
+                title="Forest Zen"
+            ></div>
+            <div
+                class="theme-dot"
+                style="background: #2e3440"
+                onclick="setTheme('nordic')"
+                title="Nordic Dusk"
+            ></div>
+        </div>
+
         <div class="workspace">
             <section class="main-zone">
                 <input
@@ -198,20 +284,57 @@
             const fields = ["title", "editor", "scrap-pad"];
 
             window.onload = () => {
+                // Load content
                 fields.forEach((id) => {
                     const saved = localStorage.getItem(`lyric_app_${id}`);
-                    if (saved) document.getElementById(id).value = saved;
-
-                    document
-                        .getElementById(id)
-                        .addEventListener("input", (e) => {
+                    const element = document.getElementById(id);
+                    if (element && saved) element.value = saved;
+                    if (element) {
+                        element.addEventListener("input", (e) => {
                             localStorage.setItem(
                                 `lyric_app_${id}`,
                                 e.target.value,
                             );
                         });
+                    }
                 });
+
+                // Load theme
+                const savedTheme =
+                    localStorage.getItem("lyric_app_theme") || "dark";
+                setTheme(savedTheme);
             };
+
+            function setTheme(theme) {
+                document.documentElement.setAttribute("data-theme", theme);
+                localStorage.setItem("lyric_app_theme", theme);
+
+                // Update active dot UI
+                document.querySelectorAll(".theme-dot").forEach((dot) => {
+                    dot.classList.remove("active");
+                });
+                const colorMap = {
+                    dark: "#1a1c2c",
+                    light: "#f5f7fa",
+                    zen: "#132620",
+                    nordic: "#2e3440",
+                };
+                const activeDot = Array.from(
+                    document.querySelectorAll(".theme-dot"),
+                ).find((dot) => dot.getAttribute("onclick").includes(theme));
+                if (activeDot) activeDot.classList.add("active");
+            }
+
+            window.addEventListener("beforeunload", (e) => {
+                const hasContent = fields.some((id) => {
+                    const el = document.getElementById(id);
+                    return el && el.value.trim().length > 0;
+                });
+                if (hasContent) {
+                    e.preventDefault();
+                    e.returnValue = "";
+                }
+            });
 
             function exportTxt() {
                 const title =
