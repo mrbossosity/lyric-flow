@@ -17,6 +17,7 @@
                 --accent: #ff79c6;
                 --draft-text: #9ca3af;
                 --border: rgba(255, 255, 255, 0.1);
+                --transition-speed: 0.4s;
             }
 
             [data-theme="light"] {
@@ -62,9 +63,6 @@
                 box-sizing: border-box;
                 margin: 0;
                 padding: 0;
-                transition:
-                    background 0.3s ease,
-                    color 0.3s ease;
             }
 
             body {
@@ -79,9 +77,19 @@
                 display: flex;
                 justify-content: center;
                 overflow-y: auto;
+                /* QOL Transition */
+                transition:
+                    background var(--transition-speed) ease-in-out,
+                    color var(--transition-speed) ease-in-out;
             }
 
-            /* Theme Controls */
+            /* Visual feedback for drag and drop */
+            body.drag-over .workspace {
+                filter: grayscale(0.5) blur(2px);
+                transform: scale(0.98);
+                pointer-events: none;
+            }
+
             .theme-switcher {
                 position: fixed;
                 top: 1rem;
@@ -94,6 +102,7 @@
                 border-radius: 20px;
                 backdrop-filter: blur(5px);
                 border: 1px solid var(--border);
+                transition: background var(--transition-speed);
             }
 
             .theme-dot {
@@ -102,6 +111,7 @@
                 border-radius: 50%;
                 cursor: pointer;
                 border: 2px solid transparent;
+                transition: transform 0.2s;
             }
 
             .theme-dot:hover {
@@ -117,7 +127,8 @@
                 gap: 1.5rem;
                 width: 95%;
                 max-width: 1200px;
-                padding: 4rem 0 5rem 0; /* Adjusted top padding for switcher */
+                padding: 4rem 0 5rem 0;
+                transition: all 0.3s ease;
             }
 
             @media (min-width: 850px) {
@@ -130,6 +141,13 @@
                     align-self: center;
                     padding: 0;
                 }
+            }
+
+            .main-zone,
+            .draft-zone {
+                transition:
+                    background var(--transition-speed),
+                    border var(--transition-speed);
             }
 
             .main-zone {
@@ -153,6 +171,7 @@
                 margin-bottom: 1rem;
                 letter-spacing: -1px;
                 width: 100%;
+                transition: color var(--transition-speed);
             }
 
             #editor {
@@ -217,6 +236,7 @@
                 font-weight: 600;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
                 white-space: nowrap;
+                transition: background var(--transition-speed);
             }
 
             ::placeholder {
@@ -225,10 +245,10 @@
             }
         </style>
     </head>
-    <body>
+    <body id="drop-target">
         <div class="theme-switcher">
             <div
-                class="theme-dot active"
+                class="theme-dot"
                 style="background: #1a1c2c"
                 onclick="setTheme('dark')"
                 title="Midnight Flow"
@@ -284,52 +304,94 @@
             const fields = ["title", "editor", "scrap-pad"];
 
             window.onload = () => {
-                // Load content
                 fields.forEach((id) => {
                     const saved = localStorage.getItem(`lyric_app_${id}`);
                     const element = document.getElementById(id);
                     if (element && saved) element.value = saved;
                     if (element) {
-                        element.addEventListener("input", (e) => {
-                            localStorage.setItem(
-                                `lyric_app_${id}`,
-                                e.target.value,
-                            );
-                        });
+                        element.addEventListener("input", (e) =>
+                            saveField(id, e.target.value),
+                        );
                     }
                 });
-
-                // Load theme
-                const savedTheme =
-                    localStorage.getItem("lyric_app_theme") || "dark";
-                setTheme(savedTheme);
+                setTheme(localStorage.getItem("lyric_app_theme") || "dark");
             };
+
+            function saveField(id, value) {
+                localStorage.setItem(`lyric_app_${id}`, value);
+            }
 
             function setTheme(theme) {
                 document.documentElement.setAttribute("data-theme", theme);
                 localStorage.setItem("lyric_app_theme", theme);
-
-                // Update active dot UI
                 document.querySelectorAll(".theme-dot").forEach((dot) => {
-                    dot.classList.remove("active");
+                    dot.classList.toggle(
+                        "active",
+                        dot.getAttribute("onclick").includes(theme),
+                    );
                 });
-                const colorMap = {
-                    dark: "#1a1c2c",
-                    light: "#f5f7fa",
-                    zen: "#132620",
-                    nordic: "#2e3440",
-                };
-                const activeDot = Array.from(
-                    document.querySelectorAll(".theme-dot"),
-                ).find((dot) => dot.getAttribute("onclick").includes(theme));
-                if (activeDot) activeDot.classList.add("active");
+            }
+
+            // Drag and Drop Logic
+            const body = document.body;
+
+            window.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                body.classList.add("drag-over");
+            });
+
+            window.addEventListener("dragleave", (e) => {
+                if (e.relatedTarget === null)
+                    body.classList.remove("drag-over");
+            });
+
+            window.addEventListener("drop", (e) => {
+                e.preventDefault();
+                body.classList.remove("drag-over");
+
+                const file = e.dataTransfer.files[0];
+                if (
+                    (file && file.type === "text/plain") ||
+                    file.name.endsWith(".txt")
+                ) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        parseImport(event.target.result);
+                    };
+                    reader.readAsText(file);
+                }
+            });
+
+            function parseImport(content) {
+                // Regex to pull sections based on the export format
+                const songMatch = content.match(/SONG:\s*(.*)\n/);
+                const lyricsMatch = content.match(
+                    /LYRICS:\n([\s\S]*?)\n---\nSCRAP NOTES:/,
+                );
+                const scrapMatch = content.match(/SCRAP NOTES:\n([\s\S]*)$/);
+
+                if (songMatch) {
+                    document.getElementById("title").value =
+                        songMatch[1].trim();
+                    saveField("title", songMatch[1].trim());
+                }
+                if (lyricsMatch) {
+                    document.getElementById("editor").value =
+                        lyricsMatch[1].trim();
+                    saveField("editor", lyricsMatch[1].trim());
+                }
+                if (scrapMatch) {
+                    document.getElementById("scrap-pad").value =
+                        scrapMatch[1].trim();
+                    saveField("scrap-pad", scrapMatch[1].trim());
+                }
             }
 
             window.addEventListener("beforeunload", (e) => {
-                const hasContent = fields.some((id) => {
-                    const el = document.getElementById(id);
-                    return el && el.value.trim().length > 0;
-                });
+                const hasContent = fields.some(
+                    (id) =>
+                        document.getElementById(id)?.value.trim().length > 0,
+                );
                 if (hasContent) {
                     e.preventDefault();
                     e.returnValue = "";
@@ -339,9 +401,9 @@
             function exportTxt() {
                 const title =
                     document.getElementById("title").value || "Untitled";
-                const body = document.getElementById("editor").value;
+                const bodyText = document.getElementById("editor").value;
                 const scrap = document.getElementById("scrap-pad").value;
-                const fileContent = `SONG: ${title}\n\nLYRICS:\n${body}\n\n---\nSCRAP NOTES:\n${scrap}`;
+                const fileContent = `SONG: ${title}\n\nLYRICS:\n${bodyText}\n\n---\nSCRAP NOTES:\n${scrap}`;
                 const blob = new Blob([fileContent], { type: "text/plain" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
