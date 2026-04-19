@@ -31,19 +31,33 @@
                     "Inter",
                     -apple-system,
                     sans-serif;
-                height: 100vh;
+                min-height: 100vh;
                 display: flex;
                 justify-content: center;
-                overflow: hidden;
+                /* Allow scrolling on mobile if content overflows */
+                overflow-y: auto;
             }
 
             .workspace {
                 display: grid;
-                grid-template-columns: 1fr 300px;
-                gap: 2rem;
+                /* Stack columns on mobile, side-by-side on desktop */
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
                 width: 95%;
                 max-width: 1200px;
-                padding: 3rem 0;
+                padding: 1.5rem 0 5rem 0; /* Extra bottom padding for footer */
+            }
+
+            @media (min-width: 850px) {
+                body {
+                    overflow: hidden;
+                } /* Lock scroll on desktop */
+                .workspace {
+                    grid-template-columns: 1fr 300px;
+                    height: 90vh;
+                    align-self: center;
+                    padding: 0;
+                }
             }
 
             /* Main Lyric Zone */
@@ -52,8 +66,9 @@
                 flex-direction: column;
                 background: var(--glass);
                 backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
                 border-radius: 12px;
-                padding: 2rem;
+                padding: 1.5rem;
                 border: 1px solid rgba(255, 255, 255, 0.1);
             }
 
@@ -62,10 +77,11 @@
                 border: none;
                 outline: none;
                 color: var(--accent);
-                font-size: 2rem;
+                font-size: 1.5rem;
                 font-weight: 700;
-                margin-bottom: 1.5rem;
+                margin-bottom: 1rem;
                 letter-spacing: -1px;
+                width: 100%;
             }
 
             #editor {
@@ -74,10 +90,11 @@
                 border: none;
                 outline: none;
                 color: var(--text);
-                font-size: 1.2rem;
-                line-height: 1.8;
+                font-size: 1.1rem;
+                line-height: 1.6;
                 resize: none;
                 font-family: inherit;
+                min-height: 300px; /* Ensure space on mobile */
             }
 
             /* Side Scrap/Drafting Zone */
@@ -86,16 +103,16 @@
                 flex-direction: column;
                 background: rgba(0, 0, 0, 0.2);
                 border-radius: 12px;
-                padding: 1.5rem;
+                padding: 1.2rem;
                 border: 1px dashed rgba(255, 255, 255, 0.1);
             }
 
             .draft-zone h3 {
-                font-size: 0.8rem;
+                font-size: 0.75rem;
                 text-transform: uppercase;
                 letter-spacing: 2px;
                 color: var(--draft-text);
-                margin-bottom: 1rem;
+                margin-bottom: 0.8rem;
             }
 
             #scrap-pad {
@@ -104,36 +121,44 @@
                 border: none;
                 outline: none;
                 color: var(--draft-text);
-                font-size: 0.95rem;
+                font-size: 0.9rem;
                 line-height: 1.5;
                 resize: none;
                 font-family: "Georgia", serif;
                 font-style: italic;
+                min-height: 150px;
             }
 
-            /* Subtle Export Trigger */
+            /* Footer/Export Area */
             .footer {
                 position: fixed;
                 bottom: 1.5rem;
                 left: 50%;
                 transform: translateX(-50%);
-                opacity: 0;
-                transition: opacity 0.3s;
+                z-index: 10;
             }
 
-            body:hover .footer {
-                opacity: 1;
+            /* Always show button on mobile, fade in on hover for desktop */
+            @media (min-width: 850px) {
+                .footer {
+                    opacity: 0;
+                    transition: opacity 0.3s;
+                }
+                body:hover .footer {
+                    opacity: 1;
+                }
             }
 
             button {
                 background: var(--accent);
                 color: #fff;
                 border: none;
-                padding: 0.7rem 1.5rem;
+                padding: 0.8rem 1.8rem;
                 border-radius: 30px;
                 cursor: pointer;
                 font-weight: 600;
                 box-shadow: 0 4px 15px rgba(255, 121, 198, 0.3);
+                white-space: nowrap;
             }
 
             ::placeholder {
@@ -160,7 +185,7 @@
                 <h3>Scrap Board</h3>
                 <textarea
                     id="scrap-pad"
-                    placeholder="Put the 'stupid' ideas here. Rhymes, vibes, fragments..."
+                    placeholder="Rhymes, vibes, fragments..."
                 ></textarea>
             </section>
         </div>
@@ -172,7 +197,6 @@
         <script>
             const fields = ["title", "editor", "scrap-pad"];
 
-            // Auto-load and Save
             window.onload = () => {
                 fields.forEach((id) => {
                     const saved = localStorage.getItem(`lyric_app_${id}`);
@@ -194,9 +218,7 @@
                     document.getElementById("title").value || "Untitled";
                 const body = document.getElementById("editor").value;
                 const scrap = document.getElementById("scrap-pad").value;
-
                 const fileContent = `SONG: ${title}\n\nLYRICS:\n${body}\n\n---\nSCRAP NOTES:\n${scrap}`;
-
                 const blob = new Blob([fileContent], { type: "text/plain" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
